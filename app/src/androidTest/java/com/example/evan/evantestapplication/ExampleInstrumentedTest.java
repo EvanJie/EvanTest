@@ -20,7 +20,9 @@ public class ExampleInstrumentedTest {
     public void useAppContext() throws Exception {
         // Context of the app under test.
         Context appContext = InstrumentationRegistry.getTargetContext();
+        String Aa = appContext.getResources().getString(R.string.test_format, 6);
 
         assertEquals("com.example.evan.evantestapplication", appContext.getPackageName());
+        assertTrue(Aa.startsWith("7"));
     }
 }

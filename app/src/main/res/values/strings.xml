@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">EvanTestApplication</string>
+    <string name="test_format">%dAAAA</string>
 </resources>
