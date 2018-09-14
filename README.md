@@ -1,2 +1,0 @@
-# EvanTest
-Android Testapp
