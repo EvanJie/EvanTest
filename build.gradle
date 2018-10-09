@@ -25,6 +25,8 @@ dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
     implementation 'com.android.support:appcompat-v7:26.1.0'
     implementation 'com.android.support.constraint:constraint-layout:1.1.2'
+    implementation "io.reactivex.rxjava2:rxjava:$RXJVA_VERSION"
+    implementation "io.reactivex.rxjava2:rxandroid:$RXANDROID_VERSION"
 //    implementation "androidx.lifecycle:lifecycle-runtime:$lifecycle_version"
     implementation "android.arch.lifecycle:extensions:$lifecycle_version"
     testImplementation 'junit:junit:4.12'
