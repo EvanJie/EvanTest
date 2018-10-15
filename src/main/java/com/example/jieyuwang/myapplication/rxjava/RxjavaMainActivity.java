@@ -1,5 +1,7 @@
 package com.example.jieyuwang.myapplication.rxjava;
 
+import android.arch.lifecycle.Lifecycle;
+import android.content.Intent;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.v4.app.FragmentActivity;
@@ -9,11 +11,20 @@ import android.widget.Button;
 import android.widget.TextView;
 
 import com.example.jieyuwang.myapplication.R;
+import com.trello.lifecycle2.android.lifecycle.AndroidLifecycle;
+import com.trello.rxlifecycle2.LifecycleProvider;
+
+import org.reactivestreams.Subscriber;
+import org.reactivestreams.Subscription;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+import io.reactivex.BackpressureStrategy;
+import io.reactivex.Flowable;
+import io.reactivex.FlowableEmitter;
+import io.reactivex.FlowableOnSubscribe;
 import io.reactivex.Observable;
 import io.reactivex.ObservableEmitter;
 import io.reactivex.ObservableOnSubscribe;
@@ -45,11 +56,15 @@ public class RxjavaMainActivity extends FragmentActivity implements View.OnClick
      * Send Always
      */
     private Button mButton1;
+    private RxHelper mRxHelper;
+    private LifecycleProvider<Lifecycle.Event> mLifecycleProvider;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_rxjava_main);
+        mLifecycleProvider = AndroidLifecycle.createLifecycleProvider(this);
+
         initView();
     }
 
@@ -59,6 +74,8 @@ public class RxjavaMainActivity extends FragmentActivity implements View.OnClick
         mButton.setOnClickListener(this);
         mButton1 = (Button) findViewById(R.id.button1);
         mButton1.setOnClickListener(this);
+        mRxHelper = new RxHelper(this);
+
     }
 
     @Override
@@ -68,13 +85,100 @@ public class RxjavaMainActivity extends FragmentActivity implements View.OnClick
                 break;
             case R.id.button:
 //                sendEvent();
-                zipObservable();
+                Intent intent = new Intent(this, RxjavaSecActivity.class);
+                startActivity(intent);
+//                zipObservable();
                 break;
 
             case R.id.button1:
-                circleSend();
+//                circleSend();
+                flowable();
+
                 break;
         }
+    }
+
+    private void flowable() {
+        Flowable<Integer> upstream = Flowable.create(new FlowableOnSubscribe<Integer>() {
+            @Override
+            public void subscribe(FlowableEmitter<Integer> emitter) throws Exception {
+               /* Log.d(TAG, "emit 1");
+                emitter.onNext(1);
+                Log.d(TAG, "emit 2");
+                emitter.onNext(2);
+                Log.d(TAG, "emit 3");
+                emitter.onNext(3);
+                Log.d(TAG, "emit complete");
+                emitter.onComplete();*/
+                Log.d(TAG, "current requested " + emitter.requested());
+
+                for (int i = 0; i < 270; i++) {
+                    Log.d(TAG, "emit " + i);
+                    Log.d(TAG, "current requested " + emitter.requested());
+                    Thread.sleep(100);
+                    emitter.onNext(i);
+                }
+                emitter.onComplete();
+
+            }
+        }, BackpressureStrategy.BUFFER);
+        int bu = upstream.bufferSize();
+        Log.d(TAG, "bufferSize " + bu);
+
+        Subscriber<Integer> downstream = new Subscriber<Integer>() {
+            private Subscription mSubscription;
+
+            @Override
+            public void onSubscribe(Subscription s) {
+                Log.d(TAG, "onSubscribe");
+//                s.request(2);  //注意这句代码
+                mSubscription = s;
+                s.request(96);
+            }
+
+            @Override
+            public void onNext(Integer integer) {
+                Log.d(TAG, "onNext: " + integer);
+                mSubscription.request(128);
+
+            }
+
+            @Override
+            public void onError(Throwable t) {
+                Log.w(TAG, "onError: ", t);
+            }
+
+            @Override
+            public void onComplete() {
+                Log.d(TAG, "onComplete");
+            }
+        };
+
+        upstream.compose(RxHelper.<Integer>applySchedulers())
+                .compose(mRxHelper.<Integer>showDialog("请求中"))
+                .compose(mLifecycleProvider.<Integer>bindUntilEvent(Lifecycle.Event.ON_STOP))
+                .subscribe(downstream);
+
+
+    }
+
+    private void sample() {
+        Observable.create(new ObservableOnSubscribe<Integer>() {
+            @Override
+            public void subscribe(ObservableEmitter<Integer> emitter) throws Exception {
+                for (int i = 0; ; i++) {   //无限循环发事件
+                    emitter.onNext(i);
+                }
+            }
+        }).subscribeOn(Schedulers.io())
+                .sample(1, TimeUnit.SECONDS)
+                .subscribe(new Consumer<Integer>() {
+                    @Override
+                    public void accept(Integer integer) throws Exception {
+                        Log.d(TAG, "" + integer);
+                    }
+                });
+
     }
 
     private void circleSend() {
