@@ -1,1 +1,2 @@
-include ':EvanTest', ':EvanFormValidator'
+include ':EvanTest'
+include':EvanFormValidator'
